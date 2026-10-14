@@ -2,6 +2,8 @@
 
 A small React + TypeScript app that shows how to build **routing**, **email/password authentication (Firebase)**, **login/logout** and **protected routes**. Read it top to bottom. Each section builds on the previous one.
 
+> **Prefer an interactive version?** Open [`public/guide.html`](public/guide.html). It is a standalone student guide with a login/logout simulator, a quiz, a glossary and the complete source code. It is not part of the React app. Open the file directly in your browser, or while `npm run dev` is running visit `http://localhost:5173/guide.html`.
+
 ## Table of contents
 
 1. [Tech stack](#1-tech-stack)
@@ -48,6 +50,8 @@ src/
     ├── Login.tsx             Login / sign up form
     ├── Form.tsx              Protected page (logged-in users only)
     └── ProtectedRoute.tsx    The guard that protects routes
+public/
+└── guide.html                Standalone interactive guide (not part of the React app)
 .env                          Your Firebase keys (not committed)
 .env.example                  Template showing which keys are needed
 ```

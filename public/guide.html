@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login, Auth &amp; Protected Routes in React: A Student Guide</title>
+<style>
+:root {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --surface-2: #f0f2f8;
+  --text: #1b2232;
+  --muted: #5a6478;
+  --border: #e1e5ee;
+  --primary: #4f46e5;
+  --primary-soft: #eef0ff;
+  --react: #0891b2;
+  --firebase: #f59e0b;
+  --green: #16a34a;
+  --green-soft: #e8f7ee;
+  --red: #dc2626;
+  --red-soft: #fdecec;
+  --amber-soft: #fff6e0;
+  --blue-soft: #e8f2ff;
+  --code-bg: #0f172a;
+  --code-text: #e2e8f0;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.06);
+  --sidebar: 280px;
+}
+[data-theme="dark"] {
+  --bg: #0b1020;
+  --surface: #121a2f;
+  --surface-2: #19233c;
+  --text: #e6eaf3;
+  --muted: #9aa5bc;
+  --border: #26324f;
+  --primary: #8b93ff;
+  --primary-soft: #1f2654;
+  --green-soft: #12301f;
+  --red-soft: #3a1717;
+  --amber-soft: #3a2c0c;
+  --blue-soft: #132744;
+  --code-bg: #080d1a;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
+  font-size: 16.5px;
+}
+a { color: var(--primary); }
+code, pre, kbd { font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace; }
+:not(pre) > code {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: .08em .38em;
+  border-radius: 6px;
+  font-size: .87em;
+}
+kbd {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 0 .4em;
+  font-size: .85em;
+}
+
+/* ---------- Progress bar ---------- */
+#progress {
+  position: fixed; top: 0; left: 0; height: 4px; width: 0;
+  background: linear-gradient(90deg, var(--react), var(--primary), var(--firebase));
+  z-index: 100;
+  transition: width .1s linear;
+}
+
+/* ---------- Layout ---------- */
+.layout { display: flex; min-height: 100vh; }
+aside {
+  position: sticky; top: 0;
+  width: var(--sidebar); flex: 0 0 var(--sidebar);
+  height: 100vh; overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 22px 16px 40px;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; margin: 0 6px 18px; }
+.brand-logo {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: grid; place-items: center; color: #fff; font-size: 18px;
+  background: linear-gradient(135deg, var(--react), var(--primary));
+}
+.brand small { display: block; font-weight: 500; color: var(--muted); font-size: .78rem; }
+aside nav ol { list-style: none; padding: 0; margin: 0; }
+aside nav li a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 8px;
+  color: var(--muted); text-decoration: none; font-size: .92rem;
+}
+aside nav li a:hover { background: var(--surface-2); color: var(--text); }
+aside nav li a.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+aside nav .num {
+  flex: 0 0 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: .75rem; font-weight: 700;
+  background: var(--surface-2); color: var(--muted);
+}
+aside nav a.active .num { background: var(--primary); color: #fff; }
+aside nav a.done .num { background: var(--green); color: #fff; }
+.nav-group { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 10px 6px; font-weight: 700; }
+.sidebar-tools { margin: 22px 6px 0; display: flex; gap: 8px; }
+.btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  padding: 7px 12px; border-radius: 8px; cursor: pointer; font: inherit; font-size: .88rem;
+}
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn.primary:hover { filter: brightness(1.08); }
+
+main { flex: 1; min-width: 0; }
+.content { max-width: 880px; margin: 0 auto; padding: 0 28px 120px; }
+
+#menu-toggle { display: none; }
+@media (max-width: 980px) {
+  aside { position: fixed; left: 0; top: 0; z-index: 50; transform: translateX(-100%); transition: transform .25s; box-shadow: var(--shadow); }
+  aside.open { transform: translateX(0); }
+  #menu-toggle { display: inline-flex; position: fixed; bottom: 18px; right: 18px; z-index: 60; box-shadow: var(--shadow); }
+  .content { padding: 0 18px 100px; }
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  margin: 28px 0 36px; padding: 40px 36px;
+  border-radius: 20px; color: #fff;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(245,158,11,.45), transparent 40%),
+    radial-gradient(circle at 10% 90%, rgba(8,145,178,.55), transparent 45%),
+    linear-gradient(135deg, #312e81, #4f46e5);
+  box-shadow: var(--shadow);
+}
+.hero h1 { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.15; }
+.hero p { margin: 0 0 18px; font-size: 1.08rem; opacity: .95; max-width: 640px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge {
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28);
+  padding: 4px 11px; border-radius: 999px; font-size: .82rem; font-weight: 600;
+}
+
+/* ---------- Sections ---------- */
+section { padding-top: 30px; }
+section + section { border-top: 1px dashed var(--border); margin-top: 30px; }
+.section-head { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+.section-num {
+  flex: 0 0 44px; height: 44px; border-radius: 12px;
+  display: grid; place-items: center; font-weight: 800; font-size: 1.15rem;
+  background: var(--primary); color: #fff;
+}
+h2 { margin: 0; font-size: 1.65rem; line-height: 1.2; }
+h3 { margin: 30px 0 8px; font-size: 1.2rem; }
+h4 { margin: 18px 0 6px; }
+.learn {
+  color: var(--muted); font-size: .95rem; margin: 6px 0 18px 58px;
+}
+.learn strong { color: var(--text); }
+@media (max-width: 600px) { .learn { margin-left: 0; } }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
+}
+table { width: 100%; border-collapse: collapse; margin: 12px 0; background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--surface-2); font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+
+ul.clean, ol.clean { padding-left: 1.25em; }
+ul.clean li, ol.clean li { margin: 4px 0; }
+
+/* ---------- Callouts ---------- */
+.callout {
+  border-left: 4px solid; border-radius: 10px;
+  padding: 12px 16px; margin: 18px 0; font-size: .96rem;
+}
+.callout > :first-child { margin-top: 0; }
+.callout > :last-child { margin-bottom: 0; }
+.callout .label { font-weight: 700; display: block; margin-bottom: 2px; }
+.callout.note { background: var(--blue-soft); border-color: #3b82f6; }
+.callout.tip { background: var(--green-soft); border-color: var(--green); }
+.callout.warn { background: var(--amber-soft); border-color: var(--firebase); }
+.callout.danger { background: var(--red-soft); border-color: var(--red); }
+
+.takeaways {
+  margin: 26px 0 0; padding: 16px 20px;
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+}
+.takeaways h4 { margin: 0 0 6px; color: var(--primary); }
+.takeaways ul { margin: 0; padding-left: 1.2em; }
+.takeaways li { margin: 3px 0; }
+
+/* ---------- Code blocks ---------- */
+.code {
+  margin: 14px 0 18px; border-radius: var(--radius); overflow: hidden;
+  background: var(--code-bg); box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,.06);
+}
+.code-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 10px 7px 14px; font-size: .8rem; color: #94a3b8;
+  background: rgba(255,255,255,.04); border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.code-head .dots { display: inline-flex; gap: 6px; margin-right: 10px; }
+.code-head .dots i { width: 10px; height: 10px; border-radius: 50%; background: #334155; display: inline-block; }
+.code-head .title { display: inline-flex; align-items: center; font-family: "SF Mono", Menlo, monospace; }
+.copy-btn {
+  background: transparent; color: #cbd5e1; border: 1px solid #334155;
+  border-radius: 6px; padding: 2px 9px; font-size: .75rem; cursor: pointer;
+}
+.copy-btn:hover { background: #1e293b; }
+.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: var(--code-text); font-size: .86rem; line-height: 1.6; tab-size: 2; }
+.t-comment { color: #7c8aa5; font-style: italic; }
+.t-string { color: #a5e3a1; }
+.t-keyword { color: #c792ea; }
+.t-literal { color: #f78c6c; }
+.t-fn { color: #82aaff; }
+.t-tag { color: #f07178; }
+.t-attr { color: #ffcb6b; }
+.t-arrow { color: #89ddff; }
+.t-flag { color: #ffcb6b; }
+
+/* ---------- Diagrams ---------- */
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
+.pill {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 14px; font-size: .88rem; box-shadow: var(--shadow);
+}
+.pill.accent { background: var(--primary); color: #fff; border-color: var(--primary); }
+.pill.fire { background: var(--amber-soft); border-color: var(--firebase); }
+.flow .arr { color: var(--muted); font-weight: 700; }
+
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+@media (max-width: 700px) { .compare { grid-template-columns: 1fr; } }
+.compare .card h4 { margin-top: 0; }
+.node {
+  border: 1px solid var(--border); background: var(--surface-2);
+  border-radius: 10px; padding: 8px 12px; font-weight: 600; font-size: .92rem; text-align: center;
+}
+.node small { display: block; font-weight: 400; color: var(--muted); font-size: .8rem; }
+.node.hl { border-color: var(--green); background: var(--green-soft); }
+.node.prov { border-color: var(--primary); background: var(--primary-soft); }
+.down { text-align: center; color: var(--muted); font-size: .82rem; margin: 3px 0; }
+.fan { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+
+.tree { list-style: none; padding-left: 0; margin: 0; font-size: .93rem; }
+.tree ul { list-style: none; padding-left: 22px; margin: 4px 0; border-left: 2px dashed var(--border); margin-left: 9px; }
+.tree li { margin: 6px 0; }
+.tree .comp { font-family: "SF Mono", Menlo, monospace; font-weight: 600; background: var(--surface-2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 6px; }
+.tree .comp.guard { border-color: var(--firebase); background: var(--amber-soft); }
+.tree .comp.prov { border-color: var(--primary); background: var(--primary-soft); }
+.tree .meta { color: var(--muted); font-size: .84rem; margin-left: 6px; }
+
+.decision { display: grid; grid-template-columns: 1fr; gap: 6px; max-width: 520px; margin: 18px auto; text-align: center; }
+.decision .branches { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.decision .yes { border-color: var(--green); background: var(--green-soft); }
+.decision .no { border-color: var(--red); background: var(--red-soft); }
+
+/* File tree */
+.files { font-family: "SF Mono", Menlo, monospace; font-size: .86rem; padding: 6px 0; }
+.files .row {
+  display: grid; grid-template-columns: minmax(220px, 1fr) 1.4fr auto; gap: 12px; align-items: center;
+  padding: 6px 14px; border-radius: 8px;
+}
+.files .row:hover { background: var(--surface-2); }
+.files .desc { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--muted); font-size: .88rem; }
+.files .sec a { font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: .75rem; text-decoration: none; background: var(--primary-soft); padding: 2px 7px; border-radius: 999px; margin-left: 3px; white-space: nowrap; }
+.files .dir { color: var(--react); font-weight: 700; }
+@media (max-width: 700px) { .files .row { grid-template-columns: 1fr; gap: 2px; } }
+
+/* Steps */
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 14px 0; }
+.steps > li {
+  counter-increment: step; position: relative;
+  padding: 2px 0 14px 46px; margin: 0;
+}
+.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: 0;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700; font-size: .85rem;
+  background: var(--primary-soft); color: var(--primary); border: 2px solid var(--primary);
+}
+.steps > li::after {
+  content: ""; position: absolute; left: 15px; top: 32px; bottom: 2px; width: 2px; background: var(--border);
+}
+.steps > li:last-child::after { display: none; }
+
+.scenarios { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .scenarios { grid-template-columns: 1fr; } }
+.scenarios .card h4 { margin: 0 0 8px; display: flex; gap: 8px; align-items: center; }
+.scenarios ol { margin: 0; padding-left: 1.2em; font-size: .93rem; }
+
+/* Concept chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.chip { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: .85rem; text-decoration: none; color: var(--text); }
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ---------- Simulator ---------- */
+.sim { margin: 18px 0; }
+.sim-opts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 12px; font-size: .9rem; }
+.sim-opts label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.sim-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 16px; }
+@media (max-width: 860px) { .sim-grid { grid-template-columns: 1fr; } }
+.browser { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.browser-bar { display: flex; gap: 6px; align-items: center; padding: 8px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.browser-bar button { border: 0; background: var(--surface); color: var(--text); width: 30px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+.browser-bar button:hover { background: var(--primary-soft); }
+.url { flex: 1; background: var(--surface); border-radius: 999px; padding: 4px 14px; font-family: "SF Mono", Menlo, monospace; font-size: .82rem; color: var(--muted); }
+.url b { color: var(--text); }
+.browser-body { min-height: 260px; }
+.mini-nav { display: flex; gap: 14px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: .9rem; flex-wrap: wrap; }
+.mini-nav a { cursor: pointer; text-decoration: underline; }
+.mini-nav .spacer { flex: 1; }
+.mini-page { padding: 16px 18px; font-size: .93rem; }
+.mini-page h5 { margin: 0 0 6px; font-size: 1.15rem; }
+.mini-page input { display: block; width: 100%; margin: 6px 0; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-2); color: var(--text); font: inherit; }
+.mini-page .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.mini-page .err { color: var(--red); font-weight: 600; margin: 8px 0 0; }
+.mini-page .ok { background: var(--green-soft); border: 1px solid var(--green); padding: 8px 12px; border-radius: 8px; }
+.sim-blank { padding: 40px 20px; text-align: center; color: var(--muted); font-style: italic; }
+.sim-log { border: 1px solid var(--border); border-radius: 12px; background: var(--code-bg); color: var(--code-text); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
+.sim-log-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: .8rem; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,.08); }
+.sim-log ol { list-style: none; margin: 0; padding: 8px 12px; font-size: .8rem; font-family: "SF Mono", Menlo, monospace; height: 300px; overflow-y: auto; }
+.sim-log li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.sim-log code { background: rgba(255,255,255,.08); border: 0; color: #fde68a; }
+.tag { display: inline-block; font-size: .7rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 4px; color: #0f172a; }
+.tag-router { background: #67e8f9; }
+.tag-firebase { background: #fbbf24; }
+.tag-authprovider { background: #a5b4fc; }
+.tag-protectedroute { background: #fca5a5; }
+.tag-login { background: #86efac; }
+.tag-navbar { background: #f0abfc; }
+.tag-browser { background: #cbd5e1; }
+.tag-hint { background: #fde047; }
+.sim-state { margin-top: 10px; font-size: .85rem; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+
+/* ---------- Quiz ---------- */
+.quiz-q { margin: 16px 0; }
+.quiz-q p.q { font-weight: 600; margin: 0 0 8px; }
+.quiz-opts { display: grid; gap: 6px; }
+.quiz-opts button {
+  text-align: left; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  padding: 9px 12px; border-radius: 8px; cursor: pointer; font: inherit; font-size: .93rem;
+}
+.quiz-opts button:hover:not(:disabled) { border-color: var(--primary); }
+.quiz-opts button.correct { border-color: var(--green); background: var(--green-soft); }
+.quiz-opts button.wrong { border-color: var(--red); background: var(--red-soft); }
+.quiz-opts button:disabled { cursor: default; }
+.quiz-explain { display: none; margin-top: 8px; font-size: .9rem; color: var(--muted); }
+.quiz-q.answered .quiz-explain { display: block; }
+#quiz-score { font-weight: 700; }
+
+/* ---------- FAQ ---------- */
+details { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; box-shadow: var(--shadow); }
+summary { cursor: pointer; padding: 12px 16px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--primary); font-size: 1.2rem; line-height: 1; }
+details[open] summary::after { content: "−"; }
+details > div { padding: 0 16px 14px; }
+
+/* Checklist */
+.checklist { list-style: none; padding: 0; }
+.checklist li { margin: 6px 0; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.checklist input { margin-top: 5px; accent-color: var(--green); }
+.checklist input:checked + span { text-decoration: line-through; color: var(--muted); }
+
+/* Tabs */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; }
+.tabs button { border: 1px solid var(--border); background: var(--surface); color: var(--muted); padding: 6px 12px; border-radius: 8px 8px 0 0; cursor: pointer; font-family: "SF Mono", Menlo, monospace; font-size: .8rem; }
+.tabs button.active { background: var(--code-bg); color: #fff; border-color: var(--code-bg); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.tab-panel .code { margin-top: 0; border-top-left-radius: 0; }
+.tab-note { font-size: .9rem; color: var(--muted); margin: 8px 0; }
+
+dl.glossary { display: grid; grid-template-columns: 200px 1fr; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+dl.glossary dt, dl.glossary dd { margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+dl.glossary dt { font-weight: 700; background: var(--surface-2); }
+@media (max-width: 600px) { dl.glossary { grid-template-columns: 1fr; } dl.glossary dt { border-bottom: 0; } }
+
+footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 40px 0 0; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<div class="layout">
+<aside id="sidebar">
+  <div class="brand">
+    <div class="brand-logo">🔐</div>
+    <div>React Auth Guide<small>Routing · Firebase · Guards</small></div>
+  </div>
+  <nav>
+    <ol>
+      <li><a href="#intro"><span class="num">★</span>Start here</a></li>
+    </ol>
+    <div class="nav-group">The guide</div>
+    <ol>
+      <li><a href="#s1"><span class="num">1</span>Tech stack</a></li>
+      <li><a href="#s2"><span class="num">2</span>Project structure</a></li>
+      <li><a href="#s3"><span class="num">3</span>Getting started</a></li>
+      <li><a href="#s4"><span class="num">4</span>Routing</a></li>
+      <li><a href="#s5"><span class="num">5</span>Firebase &amp; .env</a></li>
+      <li><a href="#s6"><span class="num">6</span>AuthContext</a></li>
+      <li><a href="#s7"><span class="num">7</span>Login &amp; sign up form</a></li>
+      <li><a href="#s8"><span class="num">8</span>Logout &amp; Navbar</a></li>
+      <li><a href="#s9"><span class="num">9</span>Protected routes</a></li>
+      <li><a href="#s10"><span class="num">10</span>How it fits together</a></li>
+      <li><a href="#s11"><span class="num">11</span>Common questions</a></li>
+    </ol>
+    <div class="nav-group">Practice &amp; reference</div>
+    <ol>
+      <li><a href="#quiz"><span class="num">?</span>Test yourself</a></li>
+      <li><a href="#source"><span class="num">A</span>Complete source code</a></li>
+      <li><a href="#glossary"><span class="num">B</span>Glossary</a></li>
+    </ol>
+  </nav>
+  <div class="sidebar-tools">
+    <button class="btn" id="theme-toggle" type="button">🌙 Dark mode</button>
+  </div>
+</aside>
+
+<main>
+<div class="content">
+
+<!-- ================= INTRO ================= -->
+<header class="hero" id="intro">
+  <h1>Login, Auth &amp; Protected Routes in React</h1>
+  <p>A step-by-step guide to building a React + TypeScript app with <strong>routing</strong>, <strong>email/password authentication</strong> using Firebase, <strong>login/logout</strong> and <strong>protected routes</strong>.</p>
+  <div class="badges">
+    <span class="badge">⚛️ React 19</span>
+    <span class="badge">🟦 TypeScript</span>
+    <span class="badge">⚡ Vite</span>
+    <span class="badge">🧭 React Router</span>
+    <span class="badge">🔥 Firebase Auth</span>
+    <span class="badge">⏱ ~45 min read</span>
+  </div>
+</header>
+
+<section style="padding-top:0">
+  <div class="card">
+    <h3 style="margin-top:0">🧭 How to use this guide</h3>
+    <ul class="clean">
+      <li>Read it <strong>from top to bottom</strong>. Each section builds on the one before it.</li>
+      <li>Each section starts with <em>what you'll learn</em> and ends with <strong>key takeaways</strong>. Read the takeaways again before you move on.</li>
+      <li>Use the <strong>Copy</strong> button on any code block to copy the code.</li>
+      <li>In <a href="#s10">Section 10</a> you'll find an <strong>interactive simulator</strong> that shows what happens behind the scenes when you log in, log out and refresh.</li>
+      <li>Test yourself with the <a href="#quiz">quiz</a> at the end. The <a href="#source">complete source code</a> is in Appendix A.</li>
+    </ul>
+  </div>
+
+  <h3>🎯 What you'll build</h3>
+  <p>A small app with three pages:</p>
+  <table>
+    <tr><th>URL</th><th>Page</th><th>Who can see it?</th></tr>
+    <tr><td><code>/</code></td><td>Home</td><td>Everyone (public)</td></tr>
+    <tr><td><code>/login</code></td><td>Login / sign up form</td><td>Everyone (public)</td></tr>
+    <tr><td><code>/form</code></td><td>Form</td><td>🔒 Logged-in users only. Everyone else is redirected to <code>/login</code>.</td></tr>
+  </table>
+
+  <p>Here's the big picture. Keep it in mind as you read:</p>
+  <div class="flow">
+    <span class="pill fire">🔥 Firebase knows who is logged in</span><span class="arr">→</span>
+    <span class="pill accent">AuthContext shares <code style="background:transparent;border:0;color:#fff">user</code> with the app</span><span class="arr">→</span>
+    <span class="pill">Navbar &amp; ProtectedRoute read it with <code>useAuth()</code></span><span class="arr">→</span>
+    <span class="pill">React Router shows the right page</span>
+  </div>
+</section>
+
+<!-- ================= 1 ================= -->
+<section id="s1">
+  <div class="section-head"><div class="section-num">1</div><h2>Tech stack</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> which tools the project uses and what each one does.</p>
+
+  <table>
+    <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><strong>React 19</strong></td><td>UI library. The app is built from <em>components</em>.</td></tr>
+    <tr><td><strong>TypeScript</strong></td><td>JavaScript with types. Catches mistakes before you run the code.</td></tr>
+    <tr><td><strong>Vite</strong></td><td>Dev server and bundler. Fast startup and hot reload.</td></tr>
+    <tr><td><strong>React Router</strong> (<code>react-router-dom</code>)</td><td>Shows different components for different URLs.</td></tr>
+    <tr><td><strong>Firebase Authentication</strong></td><td>Handles accounts, passwords and sessions, so we don't have to build our own backend.</td></tr>
+    <tr><td><strong>Oxlint</strong></td><td>Linter that flags problems in your code (<code>npm run lint</code>).</td></tr>
+  </table>
+
+  <h4>Concepts you'll use</h4>
+  <p style="margin:0;color:var(--muted);font-size:.92rem">Click a concept to see its definition in the glossary.</p>
+  <div class="chips">
+    <a class="chip" href="#g-component">Components</a>
+    <a class="chip" href="#g-props">Props</a>
+    <a class="chip" href="#g-state"><code>useState</code></a>
+    <a class="chip" href="#g-effect"><code>useEffect</code></a>
+    <a class="chip" href="#g-context">Context API</a>
+    <a class="chip" href="#g-customhook">Custom hooks</a>
+    <a class="chip" href="#g-controlled">Controlled inputs</a>
+    <a class="chip" href="#g-conditional">Conditional rendering</a>
+    <a class="chip" href="#g-layout">Nested routes</a>
+    <a class="chip" href="#g-env">Environment variables</a>
+  </div>
+
+  <div class="takeaways">
+    <h4>✅ Key takeaways</h4>
+    <ul>
+      <li>React builds the UI, React Router picks the page and Firebase handles accounts.</li>
+      <li>TypeScript and the linter help you find mistakes early.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section id="s2">
+  <div class="section-head"><div class="section-num">2</div><h2>Project structure</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> where each file lives and what it's for. The tags on the right show which sections explain each file.</p>
+
+  <div class="card files">
+    <div class="row"><span class="dir">src/</span><span class="desc"></span><span class="sec"></span></div>
+    <div class="row"><span>├── main.tsx</span><span class="desc">Entry point. Renders <code>&lt;App /&gt;</code></span><span class="sec"><a href="#source">A</a></span></div>
+    <div class="row"><span>├── App.tsx</span><span class="desc">Router, AuthProvider and all routes</span><span class="sec"><a href="#s4">§4</a><a href="#s6">§6</a><a href="#s9">§9</a></span></div>
+    <div class="row"><span>├── firebase-config.ts</span><span class="desc">Firebase setup. Exports <code>auth</code></span><span class="sec"><a href="#s5">§5</a></span></div>
+    <div class="row"><span>├── <span class="dir">context/</span></span><span class="desc"></span><span class="sec"></span></div>
+    <div class="row"><span>│&nbsp;&nbsp; └── AuthContext.tsx</span><span class="desc">Global auth state + <code>useAuth()</code> hook</span><span class="sec"><a href="#s6">§6</a></span></div>
+    <div class="row"><span>└── <span class="dir">components/</span></span><span class="desc"></span><span class="sec"></span></div>
+    <div class="row"><span>&nbsp;&nbsp;&nbsp;&nbsp; ├── Navbar.tsx</span><span class="desc">Links + login/logout button</span><span class="sec"><a href="#s8">§8</a></span></div>
+    <div class="row"><span>&nbsp;&nbsp;&nbsp;&nbsp; ├── Home.tsx</span><span class="desc">Public page</span><span class="sec"><a href="#source">A</a></span></div>
+    <div class="row"><span>&nbsp;&nbsp;&nbsp;&nbsp; ├── Login.tsx</span><span class="desc">Login / sign up form</span><span class="sec"><a href="#s7">§7</a></span></div>
+    <div class="row"><span>&nbsp;&nbsp;&nbsp;&nbsp; ├── Form.tsx</span><span class="desc">Protected page (logged-in users only)</span><span class="sec"><a href="#source">A</a></span></div>
+    <div class="row"><span>&nbsp;&nbsp;&nbsp;&nbsp; └── ProtectedRoute.tsx</span><span class="desc">The guard that protects routes</span><span class="sec"><a href="#s9">§9</a></span></div>
+    <div class="row"><span>.env</span><span class="desc">Your Firebase keys (<strong>not</strong> committed)</span><span class="sec"><a href="#s5">§5</a></span></div>
+    <div class="row"><span>.env.example</span><span class="desc">Template showing which keys are needed</span><span class="sec"><a href="#s5">§5</a></span></div>
+  </div>
+
+  <div class="callout tip"><span class="label">💡 Tip</span>
+    A common convention: <code>components/</code> holds UI pieces and pages, while <code>context/</code> holds shared global state. Keeping them apart makes it easy to find things.
+  </div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section id="s3">
+  <div class="section-head"><div class="section-num">3</div><h2>Getting started</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> how to install the project, connect it to Firebase and run it.</p>
+
+  <h3>Before you begin</h3>
+  <ul class="clean">
+    <li><strong>Node.js</strong> (a current LTS version). Check with <code>node -v</code> in your terminal.</li>
+    <li>A code editor such as VS Code.</li>
+    <li>A Google account for the Firebase console.</li>
+  </ul>
+
+  <h3>Option A: you already have the project</h3>
+  <script type="text/plain" data-lang="bash" data-title="Terminal">
+npm install
+cp .env.example .env     # then fill in your Firebase values
+npm run dev
+  </script>
+
+  <h3>Option B: starting from scratch</h3>
+  <p>Create a new Vite + React + TypeScript project and install the two libraries this guide uses:</p>
+  <script type="text/plain" data-lang="bash" data-title="Terminal">
+npm create vite@latest auth-app -- --template react-ts
+cd auth-app
+npm install
+npm install react-router-dom firebase
+  </script>
+  <p>Then create the files from <a href="#s2">Section 2</a>. The full code for each file is in <a href="#source">Appendix A</a>.</p>
+
+  <h3>Set up Firebase (one-time)</h3>
+  <ol class="steps">
+    <li>Open the <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase console</a> and <strong>create a project</strong>.</li>
+    <li>In the project, <strong>add a Web app</strong> (the <code>&lt;/&gt;</code> icon). Firebase shows you a config object with values like <code>apiKey</code> and <code>authDomain</code>. Copy these values into your <code>.env</code> file (see <a href="#s5">Section 5</a>).</li>
+    <li>Go to <strong>Authentication → Sign-in method</strong> and enable <strong>Email/Password</strong>.</li>
+    <li>Run <code>npm run dev</code> and open the URL Vite prints (usually <code>http://localhost:5173</code>).</li>
+  </ol>
+
+  <h3>Useful scripts</h3>
+  <table>
+    <tr><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>npm run dev</code></td><td>Starts the dev server with hot reload</td></tr>
+    <tr><td><code>npm run build</code></td><td>Creates a production build</td></tr>
+    <tr><td><code>npm run lint</code></td><td>Checks your code for problems</td></tr>
+  </table>
+
+  <div class="callout warn"><span class="label">⚠️ Common mistake</span>
+    If you forget to enable <strong>Email/Password</strong> in the Firebase console, every login and sign-up attempt fails. Also note that Firebase requires passwords to be <strong>at least 6 characters</strong> long.
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section id="s4">
+  <div class="section-head"><div class="section-num">4</div><h2>Routing with React Router</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> how one HTML page can show different "pages" depending on the URL.</p>
+
+  <p>A <strong>single-page app</strong> (SPA) has only one HTML page. The router decides <strong>which component to show</strong> based on the URL, without reloading the page.</p>
+
+  <div class="flow">
+    <span class="pill">URL changes to <code>/login</code></span><span class="arr">→</span>
+    <span class="pill accent">Router finds the matching &lt;Route&gt;</span><span class="arr">→</span>
+    <span class="pill">Renders <code>&lt;Login /&gt;</code></span><span class="arr">→</span>
+    <span class="pill">No page reload ⚡</span>
+  </div>
+
+  <h3>1. <code>BrowserRouter</code>: turns routing on</h3>
+  <script type="text/plain" data-lang="tsx">
+<BrowserRouter>
+  ...everything that uses routing...
+</BrowserRouter>
+  </script>
+  <p>Wrap the app <strong>once, at the top</strong>. It watches the URL. <code>Routes</code>, <code>Route</code>, <code>Link</code>, <code>Navigate</code> and <code>Outlet</code> all need to be inside it.</p>
+
+  <h3>2. <code>Routes</code> and <code>Route</code>: URL → component</h3>
+  <script type="text/plain" data-lang="tsx">
+<Routes>
+  <Route path="/" element={<Home />} />
+  <Route path="/login" element={<Login />} />
+</Routes>
+  </script>
+  <p><code>path</code> is the URL and <code>element</code> is what to render when it matches.</p>
+
+  <h3>3. <code>Link</code>: navigate without reloading</h3>
+  <script type="text/plain" data-lang="tsx">
+<Link to="/form">Form</Link>
+  </script>
+  <table>
+    <tr><th></th><th><code>&lt;a href="/form"&gt;</code></th><th><code>&lt;Link to="/form"&gt;</code></th></tr>
+    <tr><td>Reloads the whole page?</td><td>❌ Yes. The browser downloads everything again and React state is lost.</td><td>✅ No. React only swaps the component.</td></tr>
+    <tr><td>Use for</td><td>Links to <em>other</em> websites</td><td>Links <em>inside</em> your app</td></tr>
+  </table>
+
+  <h3>4. <code>useNavigate</code>: navigate from code</h3>
+  <script type="text/plain" data-lang="tsx">
+const navigate = useNavigate()
+navigate('/form')
+  </script>
+  <p>Use it when you need to redirect <strong>after something happens</strong>, such as a successful login. <code>Link</code> is for things the user clicks. <code>useNavigate</code> is for redirects in your own code.</p>
+
+  <div class="callout note"><span class="label">ℹ️ Note</span>
+    All of these are imported from <code>'react-router-dom'</code>, for example <code>import { Link, useNavigate } from 'react-router-dom'</code>.
+  </div>
+
+  <div class="takeaways">
+    <h4>✅ Key takeaways</h4>
+    <ul>
+      <li><code>BrowserRouter</code> wraps the app once. <code>Routes</code>/<code>Route</code> map URLs to components.</li>
+      <li>Use <code>Link</code> instead of <code>&lt;a&gt;</code> for internal links.</li>
+      <li>Use <code>useNavigate()</code> to redirect from code.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section id="s5">
+  <div class="section-head"><div class="section-num">5</div><h2>Firebase setup and environment variables</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> how to connect your code to Firebase and keep the config out of your source code.</p>
+
+  <div class="flow">
+    <span class="pill">.env</span><span class="arr">→</span>
+    <span class="pill"><code>import.meta.env</code></span><span class="arr">→</span>
+    <span class="pill"><code>firebaseConfig</code></span><span class="arr">→</span>
+    <span class="pill fire"><code>initializeApp()</code></span><span class="arr">→</span>
+    <span class="pill fire"><code>getAuth()</code></span><span class="arr">→</span>
+    <span class="pill accent">export <code style="background:transparent;border:0;color:#fff">auth</code></span>
+  </div>
+
+  <h3><code>firebase-config.ts</code></h3>
+  <script type="text/plain" data-lang="ts" data-title="src/firebase-config.ts">
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  // ...
+}
+
+const app = initializeApp(firebaseConfig)
+export const auth = getAuth(app)
+  </script>
+  <ul class="clean">
+    <li><code>initializeApp</code> connects your code to <strong>your</strong> Firebase project.</li>
+    <li><code>getAuth(app)</code> gives you the <strong>auth object</strong>. You pass it to every Firebase auth function.</li>
+    <li><code>export</code> lets other files import it with <code>import { auth } from './firebase-config'</code>.</li>
+  </ul>
+
+  <h3><code>.env</code>: keeping config out of the code</h3>
+  <script type="text/plain" data-lang="env" data-title=".env">
+VITE_FIREBASE_API_KEY=your-key-here
+  </script>
+  <ul class="clean">
+    <li>Vite only exposes variables that start with <strong><code>VITE_</code></strong>.</li>
+    <li>Read them with <code>import.meta.env.VITE_...</code>.</li>
+    <li><code>.env</code> is listed in <code>.gitignore</code>, so it isn't committed. <code>.env.example</code> <em>is</em> committed as a template.</li>
+    <li><strong>Restart <code>npm run dev</code></strong> after changing <code>.env</code>.</li>
+  </ul>
+
+  <p>A full <code>.env.example</code> looks like this (with empty values):</p>
+  <script type="text/plain" data-lang="env" data-title=".env.example">
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+  </script>
+
+  <div class="callout note"><span class="label">🔑 Are Firebase keys secret?</span>
+    No. Firebase web keys end up in the browser anyway. Real protection comes from <strong>Firebase security rules</strong>. The <code>.env</code> file keeps config out of git and lets you use different Firebase projects for different environments (for example development and production).
+  </div>
+
+  <div class="callout warn"><span class="label">⚠️ Common mistake</span>
+    If the app says the API key is invalid or <code>undefined</code>, check that: (1) the variable name starts with <code>VITE_</code>, (2) <code>.env</code> is in the project root next to <code>package.json</code>, and (3) you restarted the dev server.
+  </div>
+
+  <div class="takeaways">
+    <h4>✅ Key takeaways</h4>
+    <ul>
+      <li><code>firebase-config.ts</code> sets up Firebase once and exports <code>auth</code>.</li>
+      <li>Config values live in <code>.env</code> and must start with <code>VITE_</code>.</li>
+      <li>Restart the dev server after you edit <code>.env</code>.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 6 ================= -->
+<section id="s6">
+  <div class="section-head"><div class="section-num">6</div><h2>Global state with Context (AuthContext)</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> how to share the logged-in user with <em>every</em> component, and how to write a custom hook. This is the most important section, so take your time.</p>
+
+  <h3>The problem</h3>
+  <p>Many components need to know who is logged in: the Navbar, the login page and the route guard. Passing <code>user</code> down through props at every level is tedious. This is called <strong>prop drilling</strong>. <strong>Context</strong> lets you share data with any component below it.</p>
+
+  <div class="compare">
+    <div class="card">
+      <h4>❌ Prop drilling</h4>
+      <div class="node">App <small>owns <code>user</code></small></div>
+      <div class="down">↓ user</div>
+      <div class="node">Layout <small>doesn't need it, just passes it on</small></div>
+      <div class="down">↓ user</div>
+      <div class="node">Page <small>passes it on again</small></div>
+      <div class="down">↓ user</div>
+      <div class="node hl">LogoutButton <small>finally uses it</small></div>
+    </div>
+    <div class="card">
+      <h4>✅ Context</h4>
+      <div class="node prov">AuthProvider <small>shares { user, signup, login, logout }</small></div>
+      <div class="down">↓ any component below can read it directly ↓</div>
+      <div class="fan">
+        <div class="node hl">Navbar<small>useAuth()</small></div>
+        <div class="node hl">Login<small>useAuth()</small></div>
+        <div class="node hl">ProtectedRoute<small>useAuth()</small></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>The three pieces of Context</h3>
+  <script type="text/plain" data-lang="tsx">
+// 1. Create the context (an empty shared "channel")
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+// 2. Provide a value to everything inside
+<AuthContext.Provider value={{ user, signup, login, logout }}>
+  {children}
+</AuthContext.Provider>
+
+// 3. Read the value from any component below
+const ctx = useContext(AuthContext)
+  </script>
+  <div class="callout tip"><span class="label">💡 Think of it like a radio</span>
+    <code>createContext</code> creates a radio <em>channel</em>. The <code>Provider</code> is the <em>station</em> that broadcasts a value. <code>useContext</code> is a <em>radio</em> that any component below the station can use to listen.
+  </div>
+
+  <h3><code>AuthProvider</code>: the state and the Firebase logic</h3>
+  <script type="text/plain" data-lang="tsx" data-title="src/context/AuthContext.tsx">
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  </script>
+  <table>
+    <tr><th>Name</th><th>Meaning</th></tr>
+    <tr><td><code>user</code></td><td>The logged-in Firebase user, or <code>null</code> if nobody is logged in.</td></tr>
+    <tr><td><code>loading</code></td><td><code>true</code> until Firebase tells us who is logged in.</td></tr>
+    <tr><td><code>children</code></td><td>Whatever you put between the <code>&lt;AuthProvider&gt;</code> and <code>&lt;/AuthProvider&gt;</code> tags.</td></tr>
+  </table>
+
+  <h3>Listening to login state</h3>
+  <script type="text/plain" data-lang="tsx">
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    setUser(firebaseUser)
+    setLoading(false)
+  })
+  return unsubscribe
+}, [])
+  </script>
+  <ul class="clean">
+    <li><code>onAuthStateChanged</code> runs the callback <strong>on page load</strong> and <strong>every time someone logs in or out</strong>.</li>
+    <li><code>useEffect</code> with an empty array <code>[]</code> sets up the listener <strong>once</strong>, when the component first appears.</li>
+    <li>The returned <code>unsubscribe</code> function is the <strong>cleanup</strong>. It stops the listener when the component disappears.</li>
+    <li>Firebase remembers the session, so a page refresh keeps the user logged in.</li>
+  </ul>
+
+  <h3>The Firebase actions</h3>
+  <script type="text/plain" data-lang="tsx">
+const signup = async (email: string, password: string) => {
+  await createUserWithEmailAndPassword(auth, email, password)
+}
+const login = async (email: string, password: string) => {
+  await signInWithEmailAndPassword(auth, email, password)
+}
+const logout = async () => {
+  await signOut(auth)
+}
+  </script>
+  <p>These are thin wrappers around Firebase. They are <code>async</code> because they talk to a server and return Promises. If they fail, for example because of a wrong password, they <strong>throw an error</strong>. The component that calls them handles it (see <a href="#s7">Section 7</a>).</p>
+
+  <div class="callout important note"><span class="label">🧠 Important</span>
+    You <strong>don't</strong> call <code>setUser</code> in these functions. When Firebase logs someone in or out, <code>onAuthStateChanged</code> fires and updates <code>user</code> for you. There is only <strong>one place</strong> that sets <code>user</code>.
+  </div>
+
+  <h3>Why wait for <code>loading</code>?</h3>
+  <script type="text/plain" data-lang="tsx">
+if (loading) return null
+  </script>
+  <p>On page load, Firebase needs a moment to check the saved session. Without this line, <code>user</code> would be <code>null</code> for a split second, and a logged-in user would be redirected to <code>/login</code> on every refresh.</p>
+  <p>👉 You can try this yourself in the <a href="#simulator">simulator</a>: untick "Wait for loading", log in, go to <em>Form</em> and press refresh.</p>
+
+  <h3><code>useAuth()</code>: a convenient way to read the context</h3>
+  <script type="text/plain" data-lang="tsx">
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}
+  </script>
+  <p>This is a <strong>custom hook</strong>: a function that wraps other hooks. Its name must start with <code>use</code>. It:</p>
+  <ul class="clean">
+    <li>keeps <code>AuthContext</code> private, so components only import <code>useAuth</code>,</li>
+    <li>removes the <code>null</code> case, so TypeScript is happy and you don't need to check for <code>null</code> everywhere,</li>
+    <li>gives a clear error if you forget to wrap the app in <code>AuthProvider</code>.</li>
+  </ul>
+  <p>Now any component can do this:</p>
+  <script type="text/plain" data-lang="tsx">
+const { user, logout } = useAuth()
+  </script>
+
+  <h3>Where the provider goes (<code>App.tsx</code>)</h3>
+  <script type="text/plain" data-lang="tsx" data-title="src/App.tsx">
+<BrowserRouter>
+  <AuthProvider>
+    <Navbar />
+    <Routes>...</Routes>
+  </AuthProvider>
+</BrowserRouter>
+  </script>
+  <p>Everything inside <code>AuthProvider</code> can use <code>useAuth()</code>.</p>
+
+  <div class="takeaways">
+    <h4>✅ Key takeaways</h4>
+    <ul>
+      <li>Context avoids prop drilling: create it, provide it, then read it.</li>
+      <li><code>onAuthStateChanged</code> is the <strong>single source of truth</strong> for <code>user</code>.</li>
+      <li><code>if (loading) return null</code> prevents logged-in users from being bounced to <code>/login</code> on refresh.</li>
+      <li>Components use the custom hook <code>useAuth()</code>, never <code>AuthContext</code> directly.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 7 ================= -->
+<section id="s7">
+  <div class="section-head"><div class="section-num">7</div><h2>Login and sign up form</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> controlled inputs, using one form for two jobs, async submit with error handling, and showing errors.</p>
+
+  <h3>Controlled inputs</h3>
+  <script type="text/plain" data-lang="tsx">
+const [email, setEmail] = useState('')
+
+<input
+  type="email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+/>
+  </script>
+  <p>The input shows whatever is in state and updates the state on every keystroke. React is the <strong>single source of truth</strong> for the value.</p>
+  <div class="flow">
+    <span class="pill">User types "a"</span><span class="arr">→</span>
+    <span class="pill"><code>onChange</code> fires</span><span class="arr">→</span>
+    <span class="pill"><code>setEmail('a')</code></span><span class="arr">→</span>
+    <span class="pill">React re-renders</span><span class="arr">→</span>
+    <span class="pill accent">input shows <code style="background:transparent;border:0;color:#fff">value={email}</code></span><span class="arr">↻</span>
+  </div>
+
+  <h3>Toggling between Log in and Sign up</h3>
+  <script type="text/plain" data-lang="tsx">
+const [isSignup, setIsSignup] = useState(false)
+
+<button type="button" onClick={() => setIsSignup(!isSignup)}>
+  {isSignup ? 'Log in' : 'Sign up'}
+</button>
+  </script>
+  <p>One form handles both. The boolean decides the title, the button text and which function runs. <code>type="button"</code> stops this button from submitting the form. A button inside a form submits it by default.</p>
+
+  <h3>Submitting</h3>
+  <script type="text/plain" data-lang="tsx">
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault()
+  setError('')
+  try {
+    if (isSignup) {
+      await signup(email, password)
+    } else {
+      await login(email, password)
+    }
+    navigate('/form')
+  } catch {
+    setError(isSignup ? 'Could not create account' : 'Invalid email or password')
+  }
+}
+  </script>
+  <ol class="steps">
+    <li><code>e.preventDefault()</code> stops the browser from reloading the page on submit.</li>
+    <li><code>setError('')</code> clears any old error message.</li>
+    <li><code>await</code> waits for Firebase. If Firebase throws, the <code>catch</code> block runs and shows an error.</li>
+    <li>If nothing was thrown, <code>navigate('/form')</code> runs and takes the user to the protected page.</li>
+  </ol>
+  <div class="callout tip"><span class="label">💡 Free validation</span>
+    Adding <code>required</code> and <code>type="email"</code> to the inputs makes the browser check them before <code>handleSubmit</code> even runs.
+  </div>
+
+  <h3>Showing the error</h3>
+  <script type="text/plain" data-lang="tsx">
+{error && <p>{error}</p>}
+  </script>
+  <p><code>&amp;&amp;</code> renders the paragraph only if <code>error</code> is not an empty string. An empty string is "falsy", so nothing is shown.</p>
+
+  <div class="takeaways">
+    <h4>✅ Key takeaways</h4>
+    <ul>
+      <li>Controlled inputs: <code>value</code> comes from state and <code>onChange</code> updates state.</li>
+      <li>One boolean (<code>isSignup</code>) lets one form do two jobs.</li>
+      <li>Use <code>try</code> / <code>catch</code> around <code>await</code> to handle Firebase errors.</li>
+      <li><code>condition &amp;&amp; &lt;JSX /&gt;</code> renders something only when the condition is true.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 8 ================= -->
+<section id="s8">
+  <div class="section-head"><div class="section-num">8</div><h2>Logout and the Navbar</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> conditional rendering based on the login state, and how logout updates the whole app automatically.</p>
+
+  <script type="text/plain" data-lang="tsx" data-title="src/components/Navbar.tsx">
+function Navbar() {
+  const { user, logout } = useAuth()
+
+  return (
+    <nav>
+      <Link to="/">Home</Link> <Link to="/form">Form</Link>{' '}
+      {user ? (
+        <button onClick={logout}>Log out ({user.email})</button>
+      ) : (
+        <Link to="/login">Log in</Link>
+      )}
+    </nav>
+  )
+}
+  </script>
+  <ul class="clean">
+    <li><strong>Conditional rendering:</strong> <code>condition ? A : B</code> shows one thing or the other.</li>
+    <li>Logged in? Show a logout button with the user's email. Otherwise, show a login link.</li>
+    <li>Clicking logout calls Firebase's <code>signOut</code>. <code>onAuthStateChanged</code> then sets <code>user</code> to <code>null</code> and the Navbar re-renders by itself.</li>
+    <li><code>{' '}</code> adds a space between elements. JSX removes line breaks between elements.</li>
+  </ul>
+
+  <div class="compare">
+    <div class="card"><h4>Logged out</h4><div class="node">Home · Form · <u>Log in</u></div></div>
+    <div class="card"><h4>Logged in</h4><div class="node">Home · Form · <button class="btn" type="button" tabindex="-1">Log out (anna@example.com)</button></div></div>
+  </div>
+
+  <div class="takeaways">
+    <h4>✅ Key takeaways</h4>
+    <ul>
+      <li>Use a ternary (<code>? :</code>) to choose between two pieces of UI.</li>
+      <li>You never update the Navbar yourself. It re-renders because <code>user</code> in the context changed.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 9 ================= -->
+<section id="s9">
+  <div class="section-head"><div class="section-num">9</div><h2>Protected routes</h2></div>
+  <p class="learn"><strong>Goal:</strong> only logged-in users can see <code>/form</code>.</p>
+
+  <div class="decision">
+    <div class="node">User visits <code>/form</code></div>
+    <div class="down">↓</div>
+    <div class="node prov">ProtectedRoute: is there a <code>user</code>?</div>
+    <div class="branches">
+      <div><div class="down">↓ yes</div><div class="node yes"><code>&lt;Outlet /&gt;</code><small>renders &lt;Form /&gt;</small></div></div>
+      <div><div class="down">↓ no</div><div class="node no"><code>&lt;Navigate to="/login" replace /&gt;</code><small>redirect to login</small></div></div>
+    </div>
+  </div>
+
+  <h3>The guard (<code>ProtectedRoute.tsx</code>)</h3>
+  <script type="text/plain" data-lang="tsx" data-title="src/components/ProtectedRoute.tsx">
+function ProtectedRoute() {
+  const { user } = useAuth()
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <Outlet />
+}
+  </script>
+  <table>
+    <tr><th>Piece</th><th>What it does</th></tr>
+    <tr><td><code>&lt;Navigate to="/login" /&gt;</code></td><td>Redirects as soon as it is rendered.</td></tr>
+    <tr><td><code>replace</code></td><td>Replaces the current history entry instead of adding a new one. Without it, pressing <strong>Back</strong> would return to the protected page and bounce the user to <code>/login</code> again.</td></tr>
+    <tr><td><code>&lt;Outlet /&gt;</code></td><td>A placeholder for the child route. It renders the page that matched the URL.</td></tr>
+  </table>
+
+  <h3>Using it (<code>App.tsx</code>)</h3>
+  <script type="text/plain" data-lang="tsx" data-title="src/App.tsx">
+<Routes>
+  {/* Public */}
+  <Route path="/" element={<Home />} />
+  <Route path="/login" element={<Login />} />
+
+  {/* Protected */}
+  <Route element={<ProtectedRoute />}>
+    <Route path="/form" element={<Form />} />
+  </Route>
+</Routes>
+  </script>
+  <ul class="clean">
+    <li>A <code>Route</code> with <strong>no <code>path</code></strong> is a <strong>layout route</strong>. It doesn't match a URL itself. It just wraps its children.</li>
+    <li>When the URL is <code>/form</code>, React Router renders <code>ProtectedRoute</code> first. If the user is logged in, its <code>&lt;Outlet /&gt;</code> shows <code>Form</code>. Otherwise the user is redirected.</li>
+  </ul>
+
+  <h3>Protecting more pages</h3>
+  <p>Put them inside the same wrapper. No other code changes:</p>
+  <script type="text/plain" data-lang="tsx">
+<Route element={<ProtectedRoute />}>
+  <Route path="/form" element={<Form />} />
+  <Route path="/profile" element={<Profile />} />
+</Route>
+  </script>
+
+  <div class="callout danger"><span class="label">🚨 Important: guards are not security</span>
+    Route guards only <strong>hide pages in the UI</strong>. Anyone can change frontend code in their browser. Real data must be protected <strong>on the server</strong>, for example with Firebase security rules.
+  </div>
+
+  <div class="takeaways">
+    <h4>✅ Key takeaways</h4>
+    <ul>
+      <li><code>ProtectedRoute</code> returns either <code>&lt;Navigate&gt;</code> (redirect) or <code>&lt;Outlet&gt;</code> (show the page).</li>
+      <li>Wrap protected routes in a layout route (a <code>Route</code> without a <code>path</code>).</li>
+      <li>Always use <code>replace</code> on redirects like this one.</li>
+      <li>Guards are for user experience. Security happens on the server.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 10 ================= -->
+<section id="s10">
+  <div class="section-head"><div class="section-num">10</div><h2>How it all fits together</h2></div>
+  <p class="learn"><strong>You'll learn:</strong> how all the pieces work together during page load, login, logout and when someone visits a protected page.</p>
+
+  <h3>The component tree</h3>
+  <div class="card">
+    <ul class="tree">
+      <li><span class="comp">BrowserRouter</span><span class="meta">watches the URL</span>
+        <ul>
+          <li><span class="comp prov">AuthProvider</span><span class="meta">holds user, loading, signup, login, logout</span>
+            <ul>
+              <li><span class="comp">Navbar</span><span class="meta">useAuth() → user, logout</span></li>
+              <li><span class="comp">Routes</span>
+                <ul>
+                  <li><code>/</code> → <span class="comp">Home</span></li>
+                  <li><code>/login</code> → <span class="comp">Login</span><span class="meta">useAuth() → signup, login · useNavigate()</span></li>
+                  <li><span class="comp guard">ProtectedRoute</span><span class="meta">layout route · useAuth() → user</span>
+                    <ul><li><code>/form</code> → <span class="comp">Form</span><span class="meta">rendered by &lt;Outlet /&gt;</span></li></ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <h3>Four scenarios, step by step</h3>
+  <div class="scenarios">
+    <div class="card">
+      <h4>🔄 Page load</h4>
+      <ol>
+        <li><code>AuthProvider</code> starts listening with <code>onAuthStateChanged</code>.</li>
+        <li>Firebase reports the saved user (or <code>null</code>), and <code>loading</code> becomes <code>false</code>.</li>
+        <li>The app renders, and <code>useAuth()</code> returns the correct <code>user</code>.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h4>🔓 Logging in</h4>
+      <ol>
+        <li>The user submits the form, and <code>login(email, password)</code> calls Firebase.</li>
+        <li>Firebase accepts it and <code>onAuthStateChanged</code> fires, so <code>user</code> is set.</li>
+        <li>Everything that uses <code>useAuth()</code> re-renders. The Navbar shows "Log out" and <code>ProtectedRoute</code> lets <code>/form</code> through.</li>
+        <li><code>navigate('/form')</code> takes the user to the protected page.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h4>🔒 Logging out</h4>
+      <ol>
+        <li>The user clicks the logout button and <code>signOut</code> runs.</li>
+        <li><code>onAuthStateChanged</code> fires with <code>null</code>, and <code>user</code> becomes <code>null</code>.</li>
+        <li>The Navbar shows "Log in", and <code>ProtectedRoute</code> redirects to <code>/login</code> the next time it renders.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h4>🚫 Visiting <code>/form</code> while logged out</h4>
+      <ol>
+        <li><code>ProtectedRoute</code> sees <code>user === null</code>.</li>
+        <li>It renders <code>&lt;Navigate to="/login" replace /&gt;</code>.</li>
+        <li>The user lands on the login page.</li>
+      </ol>
+    </div>
+  </div>
+
+  <h3 id="simulator">🧪 Try it: interactive simulator</h3>
+  <p>This is a fake version of the app. It doesn't use real Firebase, but it follows the same logic. Click around and watch the log on the right to see <em>which piece of code runs</em> at each step.</p>
+  <div class="callout tip"><span class="label">💡 Things to try</span>
+    <ol class="clean" style="margin:4px 0 0">
+      <li>Click <strong>Form</strong> while logged out. You get redirected.</li>
+      <li>Log in with the <em>wrong</em> password, then with the right one.</li>
+      <li>On <strong>Form</strong>, press ⟳ refresh. You stay logged in.</li>
+      <li>Untick <strong>Wait for loading</strong>, then refresh on <strong>Form</strong>. This is the bug from Section 6!</li>
+      <li>Untick <strong>Use replace</strong>. Log out, click <strong>Form</strong>, then press ← Back a few times.</li>
+    </ol>
+  </div>
+
+  <div class="sim card">
+    <div class="sim-opts">
+      <label><input type="checkbox" id="opt-loading" checked> Wait for loading (<code>if (loading) return null</code>)</label>
+      <label><input type="checkbox" id="opt-replace" checked> Use <code>replace</code> on redirect</label>
+      <button class="btn" type="button" id="sim-reset" style="margin-left:auto">Reset</button>
+    </div>
+    <div class="sim-grid">
+      <div class="browser">
+        <div class="browser-bar">
+          <button type="button" id="sim-back" title="Back">←</button>
+          <button type="button" id="sim-refresh" title="Refresh">⟳</button>
+          <div class="url">localhost:5173<b id="sim-path">/</b></div>
+        </div>
+        <div class="browser-body" id="sim-body"></div>
+      </div>
+      <div class="sim-log">
+        <div class="sim-log-head"><span>What happens behind the scenes</span><button class="copy-btn" type="button" id="sim-clear">Clear</button></div>
+        <ol id="sim-log"></ol>
+      </div>
+    </div>
+    <div class="sim-state">
+      <span>user: <code id="st-user">null</code></span>
+      <span>loading: <code id="st-loading">false</code></span>
+      <span>history: <code id="st-history">["/"]</code></span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 11 ================= -->
+<section id="s11">
+  <div class="section-head"><div class="section-num">11</div><h2>Common questions</h2></div>
+  <p class="learn">Click a question to open the answer.</p>
+
+  <details>
+    <summary>Why TypeScript?</summary>
+    <div>It catches mistakes early (<code>login(123)</code> is an error because <code>email</code> must be a string), gives better autocomplete and documents the shape of your data. Vite supports plain JavaScript too, if you prefer.</div>
+  </details>
+  <details>
+    <summary>Do I need <code>AuthContext</code> if I use Firebase?</summary>
+    <div>Firebase handles authentication, but you still need a way to share the current user with your components. The context sets up <strong>one</strong> listener and shares the result everywhere.</div>
+  </details>
+  <details>
+    <summary>Why is <code>useAuth()</code> better than <code>useContext(AuthContext)</code>?</summary>
+    <div>It hides the context, removes the <code>null</code> check from every component and gives a helpful error when it's used outside the provider.</div>
+  </details>
+  <details>
+    <summary>Where does <code>BrowserRouter</code> go?</summary>
+    <div>Once, at the top of the app, above everything that uses routing.</div>
+  </details>
+  <details>
+    <summary>Is it safe to expose the Firebase API key?</summary>
+    <div>Yes. It identifies your project and is not a password. Control access with Firebase security rules and by restricting which domains are allowed to use the key in Google Cloud.</div>
+  </details>
+  <details>
+    <summary>Why do I get redirected to <code>/login</code> every time I refresh?</summary>
+    <div>You are probably rendering the routes before Firebase has finished checking the session. Make sure <code>AuthProvider</code> has <code>if (loading) return null</code> (see <a href="#s6">Section 6</a>).</div>
+  </details>
+
+  <h3>💪 Ideas to practice</h3>
+  <p style="color:var(--muted);font-size:.92rem;margin-top:0">Tick them off as you finish them. Your progress is saved in this browser.</p>
+  <ul class="checklist" id="practice">
+    <li><label><input type="checkbox" data-key="p1"><span>Show a "Loading..." message instead of <code>null</code> while Firebase checks the session.</span></label></li>
+    <li><label><input type="checkbox" data-key="p2"><span>Add a <code>/profile</code> page behind the guard.</span></label></li>
+    <li><label><input type="checkbox" data-key="p3"><span>Add Google sign-in with <code>signInWithPopup</code>.</span></label></li>
+    <li><label><input type="checkbox" data-key="p4"><span>Redirect logged-in users away from <code>/login</code>.</span></label></li>
+    <li><label><input type="checkbox" data-key="p5"><span>Send the user back to the page they originally wanted after login.</span></label></li>
+  </ul>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section id="quiz">
+  <div class="section-head"><div class="section-num">?</div><h2>Test yourself</h2></div>
+  <p class="learn">Click an answer. You'll see right away whether it's correct and why. Score: <span id="quiz-score">0 / 0</span></p>
+  <div id="quiz-box"></div>
+  <button class="btn" type="button" id="quiz-reset">Reset quiz</button>
+</section>
+
+<!-- ================= SOURCE ================= -->
+<section id="source">
+  <div class="section-head"><div class="section-num">A</div><h2>Complete source code</h2></div>
+  <p class="learn">Every file assembled in one place, so you can build and run the project.</p>
+  <div class="callout note"><span class="label">ℹ️ Note</span>
+    The guide doesn't show <code>main.tsx</code>, <code>Home.tsx</code> and <code>Form.tsx</code>. The versions below are simple examples so the project runs. Feel free to change them.
+  </div>
+
+  <div class="tabs" id="src-tabs"></div>
+  <div id="src-panels">
+    <div class="tab-panel" data-name="main.tsx">
+<script type="text/plain" data-lang="tsx" data-title="src/main.tsx">
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+</script>
+    </div>
+    <div class="tab-panel" data-name="App.tsx">
+<script type="text/plain" data-lang="tsx" data-title="src/App.tsx">
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import Navbar from './components/Navbar'
+import Home from './components/Home'
+import Login from './components/Login'
+import Form from './components/Form'
+import ProtectedRoute from './components/ProtectedRoute'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Navbar />
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+
+          {/* Protected */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/form" element={<Form />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
+
+export default App
+</script>
+    </div>
+    <div class="tab-panel" data-name="firebase-config.ts">
+<script type="text/plain" data-lang="ts" data-title="src/firebase-config.ts">
+import { initializeApp } from 'firebase/app'
+import { getAuth } from 'firebase/auth'
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+}
+
+const app = initializeApp(firebaseConfig)
+export const auth = getAuth(app)
+</script>
+    </div>
+    <div class="tab-panel" data-name="AuthContext.tsx">
+<script type="text/plain" data-lang="tsx" data-title="src/context/AuthContext.tsx">
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  type User,
+} from 'firebase/auth'
+import { auth } from '../firebase-config'
+
+type AuthContextValue = {
+  user: User | null
+  signup: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser)
+      setLoading(false)
+    })
+    return unsubscribe
+  }, [])
+
+  const signup = async (email: string, password: string) => {
+    await createUserWithEmailAndPassword(auth, email, password)
+  }
+  const login = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password)
+  }
+  const logout = async () => {
+    await signOut(auth)
+  }
+
+  if (loading) return null
+
+  return (
+    <AuthContext.Provider value={{ user, signup, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}
+</script>
+    </div>
+    <div class="tab-panel" data-name="Navbar.tsx">
+<script type="text/plain" data-lang="tsx" data-title="src/components/Navbar.tsx">
+import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
+function Navbar() {
+  const { user, logout } = useAuth()
+
+  return (
+    <nav>
+      <Link to="/">Home</Link> <Link to="/form">Form</Link>{' '}
+      {user ? (
+        <button onClick={logout}>Log out ({user.email})</button>
+      ) : (
+        <Link to="/login">Log in</Link>
+      )}
+    </nav>
+  )
+}
+
+export default Navbar
+</script>
+    </div>
+    <div class="tab-panel" data-name="Home.tsx">
+<script type="text/plain" data-lang="tsx" data-title="src/components/Home.tsx">
+function Home() {
+  return (
+    <div>
+      <h1>Home</h1>
+      <p>This page is public. Anyone can see it.</p>
+    </div>
+  )
+}
+
+export default Home
+</script>
+    </div>
+    <div class="tab-panel" data-name="Login.tsx">
+<script type="text/plain" data-lang="tsx" data-title="src/components/Login.tsx">
+import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
+function Login() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSignup, setIsSignup] = useState(false)
+  const [error, setError] = useState('')
+  const { signup, login } = useAuth()
+  const navigate = useNavigate()
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    try {
+      if (isSignup) {
+        await signup(email, password)
+      } else {
+        await login(email, password)
+      }
+      navigate('/form')
+    } catch {
+      setError(isSignup ? 'Could not create account' : 'Invalid email or password')
+    }
+  }
+
+  return (
+    <div>
+      <h1>{isSignup ? 'Sign up' : 'Log in'}</h1>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit">{isSignup ? 'Create account' : 'Log in'}</button>
+      </form>
+
+      {error && <p>{error}</p>}
+
+      <p>
+        {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+        <button type="button" onClick={() => setIsSignup(!isSignup)}>
+          {isSignup ? 'Log in' : 'Sign up'}
+        </button>
+      </p>
+    </div>
+  )
+}
+
+export default Login
+</script>
+    </div>
+    <div class="tab-panel" data-name="Form.tsx">
+<script type="text/plain" data-lang="tsx" data-title="src/components/Form.tsx">
+import { useState, type FormEvent } from 'react'
+import { useAuth } from '../context/AuthContext'
+
+function Form() {
+  const { user } = useAuth()
+  const [message, setMessage] = useState('')
+  const [sent, setSent] = useState(false)
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    setSent(true)
+  }
+
+  return (
+    <div>
+      <h1>Form</h1>
+      <p>Only logged-in users can see this page. Hi, {user?.email}!</p>
+      <form onSubmit={handleSubmit}>
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Write a message"
+          required
+        />
+        <button type="submit">Send</button>
+      </form>
+      {sent && <p>Thanks! Your message was sent.</p>}
+    </div>
+  )
+}
+
+export default Form
+</script>
+    </div>
+    <div class="tab-panel" data-name="ProtectedRoute.tsx">
+<script type="text/plain" data-lang="tsx" data-title="src/components/ProtectedRoute.tsx">
+import { Navigate, Outlet } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
+function ProtectedRoute() {
+  const { user } = useAuth()
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <Outlet />
+}
+
+export default ProtectedRoute
+</script>
+    </div>
+    <div class="tab-panel" data-name=".env.example">
+<script type="text/plain" data-lang="env" data-title=".env.example">
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+</script>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GLOSSARY ================= -->
+<section id="glossary">
+  <div class="section-head"><div class="section-num">B</div><h2>Glossary</h2></div>
+  <p class="learn">Short definitions of the terms used in this guide.</p>
+  <dl class="glossary">
+    <dt>SPA</dt><dd>Single-page application. One HTML page whose content JavaScript swaps out, without full page reloads.</dd>
+    <dt id="g-component">Component</dt><dd>A function that returns JSX (UI). For example <code>Navbar</code>, <code>Login</code> or <code>Home</code>.</dd>
+    <dt id="g-props">Props</dt><dd>Inputs passed to a component, like HTML attributes: <code>&lt;Route path="/" /&gt;</code>. <code>children</code> is a special prop that holds whatever is between the tags.</dd>
+    <dt id="g-state">State (<code>useState</code>)</dt><dd>Data a component remembers between renders. Changing it with the setter re-renders the component.</dd>
+    <dt id="g-effect">Effect (<code>useEffect</code>)</dt><dd>Code that runs after rendering, for example to set up a listener. It can return a cleanup function.</dd>
+    <dt>Hook</dt><dd>A function starting with <code>use</code> that gives components React features (<code>useState</code>, <code>useEffect</code>, <code>useContext</code>, <code>useNavigate</code>…).</dd>
+    <dt id="g-customhook">Custom hook</dt><dd>Your own hook that wraps other hooks, like <code>useAuth()</code>.</dd>
+    <dt id="g-context">Context</dt><dd>A way to share a value with every component below a Provider, without passing props.</dd>
+    <dt>Prop drilling</dt><dd>Passing props through many components that don't need them, just to reach one that does.</dd>
+    <dt>Provider</dt><dd>The component (<code>AuthContext.Provider</code>) that supplies a context value to its children.</dd>
+    <dt>Promise / async / await</dt><dd>A Promise is a value that will arrive later. <code>await</code> pauses an <code>async</code> function until the Promise finishes. If it fails, an error is thrown.</dd>
+    <dt id="g-controlled">Controlled input</dt><dd>An input whose <code>value</code> comes from React state and whose <code>onChange</code> updates that state.</dd>
+    <dt id="g-conditional">Conditional rendering</dt><dd>Showing different JSX depending on a condition, using <code>a ? b : c</code> or <code>a &amp;&amp; b</code>.</dd>
+    <dt id="g-layout">Layout route</dt><dd>A <code>&lt;Route&gt;</code> without a <code>path</code> that wraps child routes. Its <code>&lt;Outlet /&gt;</code> renders the matching child. This is how nested routes work.</dd>
+    <dt id="g-env">Environment variable</dt><dd>A config value stored outside the code (in <code>.env</code>). In Vite it must start with <code>VITE_</code> and is read with <code>import.meta.env</code>.</dd>
+    <dt>Session</dt><dd>Firebase remembers that a user is logged in (in the browser), so they stay logged in after a refresh.</dd>
+    <dt>Security rules</dt><dd>Rules on Firebase's servers that decide who can read or write data. This is the real protection, not the route guard.</dd>
+  </dl>
+
+  <footer>Made for programming students · Read it, build it, break it, fix it 🚀</footer>
+</section>
+
+</div>
+</main>
+</div>
+
+<button class="btn primary" id="menu-toggle" type="button">☰ Contents</button>
+
+<script>
+/* ============================================================
+   Code blocks: dedent, highlight, add copy buttons
+   ============================================================ */
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const LANGS = {
+  tsx: /(?<comment>\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(?<string>'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|(?<arrow>=>)|(?<tag>(?<![\w$)\]])<\/?[A-Za-z][\w.]*|\/?>)|(?<attr>\b[a-zA-Z]+(?==[{"']))|(?<keyword>\b(?:import|from|export|default|const|let|var|function|return|if|else|async|await|try|catch|throw|new|type|interface|typeof)\b)|(?<literal>\b(?:null|true|false|undefined)\b|\b\d+\b)|(?<fn>\b[A-Za-z_$][\w$]*(?=\())/g,
+  bash: /(?<comment>#[^\n]*)|(?<string>'[^'\n]*'|"[^"\n]*")|(?<keyword>\b(?:npm|npx|cp|cd|git|node)\b)|(?<flag>(?<=\s)--?[\w-]*)/g,
+  env: /(?<comment>#[^\n]*)|(?<attr>^[A-Z_][A-Z0-9_]*(?==))/gm,
+};
+LANGS.ts = LANGS.tsx;
+
+function highlight(code, lang) {
+  const re = LANGS[lang];
+  if (!re) return esc(code);
+  re.lastIndex = 0;
+  let out = '', last = 0;
+  for (const m of code.matchAll(re)) {
+    const group = Object.keys(m.groups).find((k) => m.groups[k] !== undefined);
+    out += esc(code.slice(last, m.index)) + `<span class="t-${group}">${esc(m[0])}</span>`;
+    last = m.index + m[0].length;
+  }
+  return out + esc(code.slice(last));
+}
+
+function dedent(text) {
+  const lines = text.replace(/\t/g, '  ').split('\n');
+  while (lines.length && !lines[0].trim()) lines.shift();
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  const indent = Math.min(...lines.filter((l) => l.trim()).map((l) => l.match(/^ */)[0].length));
+  return lines.map((l) => l.slice(indent)).join('\n');
+}
+
+const LANG_LABEL = { tsx: 'TSX', ts: 'TypeScript', bash: 'Terminal', env: '.env' };
+
+document.querySelectorAll('script[type="text/plain"][data-lang]').forEach((el) => {
+  const lang = el.dataset.lang;
+  const code = dedent(el.textContent);
+  const wrap = document.createElement('div');
+  wrap.className = 'code';
+  wrap.innerHTML = `
+    <div class="code-head">
+      <span class="title"><span class="dots"><i></i><i></i><i></i></span>${esc(el.dataset.title || LANG_LABEL[lang] || lang)}</span>
+      <button class="copy-btn" type="button">Copy</button>
+    </div>
+    <pre><code>${highlight(code, lang)}</code></pre>`;
+  wrap.querySelector('.copy-btn').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    const done = () => { btn.textContent = 'Copied ✓'; setTimeout(() => (btn.textContent = 'Copy'), 1400); };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(code).then(done, () => fallbackCopy(code, done));
+    } else {
+      fallbackCopy(code, done);
+    }
+  });
+  el.replaceWith(wrap);
+});
+
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch (_) {}
+  ta.remove();
+}
+
+/* ============================================================
+   Source code tabs
+   ============================================================ */
+(function () {
+  const tabs = document.getElementById('src-tabs');
+  const panels = [...document.querySelectorAll('#src-panels .tab-panel')];
+  panels.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = p.dataset.name;
+    b.addEventListener('click', () => {
+      tabs.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
+      panels.forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      p.classList.add('active');
+    });
+    tabs.appendChild(b);
+    if (i === 0) { b.classList.add('active'); p.classList.add('active'); }
+  });
+})();
+
+/* ============================================================
+   Theme toggle
+   ============================================================ */
+(function () {
+  const btn = document.getElementById('theme-toggle');
+  const saved = localStorage.getItem('auth-guide-theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const apply = (t) => {
+    document.documentElement.dataset.theme = t;
+    btn.textContent = t === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+  };
+  apply(saved || (prefersDark ? 'dark' : 'light'));
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('auth-guide-theme', next);
+    apply(next);
+  });
+})();
+
+/* ============================================================
+   Sidebar: scroll spy, progress bar, mobile menu
+   ============================================================ */
+(function () {
+  const links = [...document.querySelectorAll('aside nav a')];
+  const sections = links.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const progress = document.getElementById('progress');
+  const sidebar = document.getElementById('sidebar');
+
+  function onScroll() {
+    const h = document.documentElement;
+    const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+    progress.style.width = Math.min(100, Math.max(0, pct)) + '%';
+
+    let current = 0;
+    sections.forEach((s, i) => { if (s.getBoundingClientRect().top < window.innerHeight * 0.3) current = i; });
+    links.forEach((a, i) => {
+      a.classList.toggle('active', i === current);
+      a.classList.toggle('done', i < current);
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  document.getElementById('menu-toggle').addEventListener('click', () => sidebar.classList.toggle('open'));
+  links.forEach((a) => a.addEventListener('click', () => sidebar.classList.remove('open')));
+})();
+
+/* ============================================================
+   Practice checklist (saved in localStorage)
+   ============================================================ */
+document.querySelectorAll('#practice input').forEach((cb) => {
+  const key = 'auth-guide-' + cb.dataset.key;
+  cb.checked = localStorage.getItem(key) === '1';
+  cb.addEventListener('change', () => localStorage.setItem(key, cb.checked ? '1' : '0'));
+});
+
+/* ============================================================
+   Quiz
+   ============================================================ */
+(function () {
+  const QUESTIONS = [
+    {
+      q: 'Why should you use <code>&lt;Link to="/form"&gt;</code> instead of <code>&lt;a href="/form"&gt;</code> inside your app?',
+      options: ['Link changes the URL without reloading the page', 'Plain <code>&lt;a&gt;</code> tags do not work in React', 'Link makes the page load from the server faster'],
+      answer: 0,
+      explain: 'A plain <code>&lt;a&gt;</code> reloads the whole page, so React state is lost. <code>Link</code> only swaps the component.',
+    },
+    {
+      q: 'Which prefix must an environment variable have for Vite to expose it to your code?',
+      options: ['<code>REACT_APP_</code>', '<code>VITE_</code>', '<code>PUBLIC_</code>'],
+      answer: 1,
+      explain: 'Vite only exposes variables that start with <code>VITE_</code>. You read them with <code>import.meta.env.VITE_...</code>.',
+    },
+    {
+      q: 'After <code>login(email, password)</code> succeeds, what updates the <code>user</code> state?',
+      options: ['The <code>login</code> function calls <code>setUser</code>', 'The Navbar sets it', 'The <code>onAuthStateChanged</code> listener'],
+      answer: 2,
+      explain: 'The actions never call <code>setUser</code>. Firebase fires <code>onAuthStateChanged</code>, and the listener updates <code>user</code>.',
+    },
+    {
+      q: 'What does <code>if (loading) return null</code> in <code>AuthProvider</code> prevent?',
+      options: ['Logged-in users being redirected to /login on refresh', 'Firebase errors when the password is wrong', 'Users signing up twice'],
+      answer: 0,
+      explain: 'While Firebase checks the saved session, <code>user</code> is briefly <code>null</code>. Waiting stops <code>ProtectedRoute</code> from redirecting too early.',
+    },
+    {
+      q: 'In <code>ProtectedRoute</code>, what does <code>&lt;Outlet /&gt;</code> render?',
+      options: ['The login page', 'The child route that matched the URL (e.g. Form)', 'The Navbar'],
+      answer: 1,
+      explain: '<code>Outlet</code> is a placeholder for the child route of the layout route.',
+    },
+    {
+      q: 'Why do we add <code>replace</code> to <code>&lt;Navigate to="/login" replace /&gt;</code>?',
+      options: ['It makes the redirect faster', 'It clears the user session', 'So pressing Back does not bounce the user to /login again'],
+      answer: 2,
+      explain: '<code>replace</code> replaces the protected page in the history instead of adding a new entry, so Back works as expected.',
+    },
+    {
+      q: 'What is the purpose of <code>e.preventDefault()</code> in <code>handleSubmit</code>?',
+      options: ['It stops the browser from reloading the page on submit', 'It validates the email address', 'It prevents Firebase errors'],
+      answer: 0,
+      explain: 'By default, submitting a form reloads the page. <code>preventDefault()</code> stops that so React can handle the submit.',
+    },
+    {
+      q: 'Is a protected route enough to keep private data safe?',
+      options: ['Yes, users cannot see the page', 'No, data must also be protected on the server (e.g. Firebase security rules)', 'Yes, as long as the API key is in .env'],
+      answer: 1,
+      explain: 'Route guards only hide UI. Anyone can change frontend code in their browser. Security belongs on the server.',
+    },
+    {
+      q: 'Why does a button inside the form need <code>type="button"</code> to toggle between Log in and Sign up?',
+      options: ['To make it look like a button', 'Buttons inside a form submit the form by default', 'React requires it on every button'],
+      answer: 1,
+      explain: 'Without <code>type="button"</code>, clicking the toggle would submit the form.',
+    },
+  ];
+
+  const box = document.getElementById('quiz-box');
+  const scoreEl = document.getElementById('quiz-score');
+  let answered = 0, correct = 0;
+
+  function build() {
+    answered = 0; correct = 0;
+    box.innerHTML = '';
+    QUESTIONS.forEach((item, qi) => {
+      const div = document.createElement('div');
+      div.className = 'quiz-q card';
+      div.innerHTML = `<p class="q">${qi + 1}. ${item.q}</p><div class="quiz-opts"></div><div class="quiz-explain"></div>`;
+      const opts = div.querySelector('.quiz-opts');
+      item.options.forEach((o, oi) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.innerHTML = o;
+        b.addEventListener('click', () => {
+          const ok = oi === item.answer;
+          answered++; if (ok) correct++;
+          opts.querySelectorAll('button').forEach((x, xi) => {
+            x.disabled = true;
+            if (xi === item.answer) x.classList.add('correct');
+          });
+          if (!ok) b.classList.add('wrong');
+          div.querySelector('.quiz-explain').innerHTML = (ok ? '✅ Correct! ' : '❌ Not quite. ') + item.explain;
+          div.classList.add('answered');
+          updateScore();
+        });
+        opts.appendChild(b);
+      });
+      box.appendChild(div);
+    });
+    updateScore();
+  }
+  function updateScore() {
+    scoreEl.textContent = `${correct} / ${answered}` + (answered === QUESTIONS.length ? ` (done! ${correct === QUESTIONS.length ? '🏆 perfect' : 'review the explanations above'})` : '');
+  }
+  document.getElementById('quiz-reset').addEventListener('click', build);
+  build();
+})();
+
+/* ============================================================
+   Interactive auth simulator
+   ============================================================ */
+(function () {
+  const EMAIL = 'student@example.com';
+  const $ = (id) => document.getElementById(id);
+  const body = $('sim-body'), logEl = $('sim-log');
+  const optLoading = $('opt-loading'), optReplace = $('opt-replace');
+  let s, busy, timer;
+
+  function reset() {
+    clearTimeout(timer);
+    s = { user: null, loading: false, path: '/', history: ['/'], error: '', isSignup: false };
+    busy = false;
+    logEl.innerHTML = '';
+    log('Browser', 'App started. Try clicking <b>Form</b> while logged out.');
+    render();
+  }
+
+  function log(tag, msg) {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="tag tag-${tag.toLowerCase()}">${tag}</span>${msg}`;
+    logEl.appendChild(li);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function go(path, replace) {
+    if (replace) s.history[s.history.length - 1] = path;
+    else s.history.push(path);
+    s.path = path;
+  }
+
+  function nav() {
+    const right = s.user
+      ? `<button class="btn" type="button" data-action="logout">Log out (${EMAIL})</button>`
+      : `<a data-link="/login">Log in</a>`;
+    return `<div class="mini-nav"><a data-link="/">Home</a><a data-link="/form">Form</a><span class="spacer"></span>${right}</div>`;
+  }
+
+  function page() {
+    if (s.path === '/') {
+      return `<div class="mini-page"><h5>Home</h5><p>This page is public. Anyone can see it.</p></div>`;
+    }
+    if (s.path === '/form') {
+      return `<div class="mini-page"><h5>Form 🔒</h5><p class="ok">Only logged-in users can see this page. Hi, ${EMAIL}!</p></div>`;
+    }
+    // /login
+    const already = s.user ? `<p style="color:var(--muted);font-size:.85rem">You are already logged in, but you can still see this page. Redirecting logged-in users away from /login is one of the practice ideas!</p>` : '';
+    return `<div class="mini-page">
+      <h5>${s.isSignup ? 'Sign up' : 'Log in'}</h5>${already}
+      <input type="email" value="${EMAIL}" readonly>
+      <input type="password" value="secret123" readonly>
+      <div class="row">
+        <button class="btn primary" type="button" data-action="submit-ok">${s.isSignup ? 'Create account' : 'Log in'}</button>
+        <button class="btn" type="button" data-action="submit-bad">${s.isSignup ? 'Sign up (email taken)' : 'Log in (wrong password)'}</button>
+      </div>
+      ${s.error ? `<p class="err">${s.error}</p>` : ''}
+      <p style="margin:10px 0 0;font-size:.88rem">${s.isSignup ? 'Already have an account?' : "Don't have an account?"}
+        <button class="btn" type="button" data-action="toggle">${s.isSignup ? 'Log in' : 'Sign up'}</button></p>
+    </div>`;
+  }
+
+  function render() {
+    if (s.loading && optLoading.checked) {
+      body.innerHTML = `<div class="sim-blank">⏳ Blank screen: <code>AuthProvider</code> returns <code>null</code> while Firebase checks the saved session…</div>`;
+      updateState();
+      return;
+    }
+    if (s.path === '/form') {
+      if (!s.user) {
+        const r = optReplace.checked;
+        log('ProtectedRoute', `user is <code>null</code> → <code>&lt;Navigate to="/login"${r ? ' replace' : ''} /&gt;</code>`);
+        go('/login', r);
+      } else {
+        log('ProtectedRoute', 'user exists → <code>&lt;Outlet /&gt;</code> renders Form');
+      }
+    }
+    body.innerHTML = nav() + page();
+    updateState();
+  }
+
+  function updateState() {
+    $('sim-path').textContent = s.path;
+    $('st-user').textContent = s.user ? `"${EMAIL}"` : 'null';
+    $('st-loading').textContent = String(s.loading);
+    $('st-history').textContent = JSON.stringify(s.history);
+  }
+
+  body.addEventListener('click', (e) => {
+    const link = e.target.closest('[data-link]');
+    const action = e.target.closest('[data-action]');
+    if (busy) return;
+
+    if (link) {
+      const p = link.dataset.link;
+      s.error = '';
+      log('Router', `<code>&lt;Link to="${p}"&gt;</code> → URL changes, no page reload`);
+      go(p, false);
+      render();
+      return;
+    }
+    if (!action) return;
+    const a = action.dataset.action;
+
+    if (a === 'toggle') {
+      s.isSignup = !s.isSignup;
+      s.error = '';
+      log('Login', `<code>setIsSignup(${s.isSignup})</code> → same form, different text and function`);
+      render();
+    }
+
+    if (a === 'logout') {
+      log('Navbar', '<code>onClick={logout}</code> → <code>signOut(auth)</code>');
+      s.user = null;
+      log('Firebase', '<code>onAuthStateChanged</code> fires with <code>null</code> → <code>setUser(null)</code>');
+      log('Navbar', 're-renders → shows "Log in" link');
+      render();
+    }
+
+    if (a === 'submit-ok' || a === 'submit-bad') {
+      const fn = s.isSignup ? 'signup' : 'login';
+      const fbFn = s.isSignup ? 'createUserWithEmailAndPassword' : 'signInWithEmailAndPassword';
+      busy = true;
+      s.error = '';
+      log('Login', `<code>handleSubmit</code> → <code>e.preventDefault()</code>, <code>await ${fn}(email, password)</code>`);
+      log('Firebase', `<code>${fbFn}(auth, …)</code> talking to the server…`);
+      render();
+      timer = setTimeout(() => {
+        busy = false;
+        if (a === 'submit-bad') {
+          s.error = s.isSignup ? 'Could not create account' : 'Invalid email or password';
+          log('Firebase', '❌ throws an error');
+          log('Login', `<code>catch</code> → <code>setError('${s.error}')</code>`);
+          render();
+          return;
+        }
+        s.user = EMAIL;
+        log('Firebase', `✅ success → <code>onAuthStateChanged</code> fires → <code>setUser(user)</code>`);
+        log('Navbar', `re-renders → shows "Log out (${EMAIL})"`);
+        log('Login', `<code>navigate('/form')</code>`);
+        go('/form', false);
+        render();
+      }, 700);
+    }
+  });
+
+  $('sim-back').addEventListener('click', () => {
+    if (busy || s.loading) return;
+    if (s.history.length < 2) { log('Router', 'No previous page in the history'); return; }
+    s.history.pop();
+    s.path = s.history[s.history.length - 1];
+    s.error = '';
+    log('Router', `← Back → <code>${s.path}</code>`);
+    render();
+  });
+
+  $('sim-refresh').addEventListener('click', () => {
+    if (busy || s.loading) return;
+    const saved = s.user;
+    const pathBefore = s.path;
+    s.error = '';
+    log('Browser', '⟳ Page refresh: all React state is reset');
+    s.user = null;
+    s.loading = true;
+    log('AuthProvider', `<code>user = null</code>, <code>loading = true</code>` +
+      (optLoading.checked ? ' → returns <code>null</code> while waiting' : ' → ⚠️ renders the app anyway, with user = null'));
+    render();
+    busy = true;
+    timer = setTimeout(() => {
+      busy = false;
+      s.user = saved;
+      s.loading = false;
+      log('Firebase', `<code>onAuthStateChanged</code> → ${saved ? `saved session found, <code>user = "${EMAIL}"</code>` : '<code>user = null</code>'}, <code>loading = false</code>`);
+      render();
+      if (saved && pathBefore === '/form' && s.path === '/login') {
+        log('Hint', 'The user IS logged in, but was already sent to /login before Firebase answered. <code>if (loading) return null</code> prevents this bug.');
+      }
+    }, 1400);
+  });
+
+  $('sim-clear').addEventListener('click', () => { logEl.innerHTML = ''; });
+  $('sim-reset').addEventListener('click', reset);
+  optLoading.addEventListener('change', () => log('Browser', `Wait for loading: <b>${optLoading.checked ? 'on' : 'off'}</b>`));
+  optReplace.addEventListener('change', () => log('Browser', `Use replace: <b>${optReplace.checked ? 'on' : 'off'}</b>`));
+
+  reset();
+})();
+</script>
+</body>
+</html>
